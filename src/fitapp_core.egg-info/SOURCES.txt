@@ -1,0 +1,11 @@
+LICENSE
+README.md
+pyproject.toml
+src/fitapp_core/generator.py
+src/fitapp_core/init.py
+src/fitapp_core.egg-info/PKG-INFO
+src/fitapp_core.egg-info/SOURCES.txt
+src/fitapp_core.egg-info/dependency_links.txt
+src/fitapp_core.egg-info/requires.txt
+src/fitapp_core.egg-info/top_level.txt
+tests/test_generator.py
