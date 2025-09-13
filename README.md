@@ -9,7 +9,7 @@ python_version: "3.10"
 tags:
 - streamlit
 pinned: false
-short_description: Workout planning app
+short_description: Workout planner
 ---
 
 # Fitapp
