@@ -1,2 +1,4 @@
 streamlit>=1.26
--e .
+# -e .
+
+ENV PYTHONPATH="/app/src:${PYTHONPATH}
