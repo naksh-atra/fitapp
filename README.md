@@ -9,7 +9,7 @@ python_version: "3.10"
 tags:
 - streamlit
 pinned: false
-short_description: Interactive Streamlit app for planning and exploring workout routines
+short_description: Workout planning app
 ---
 
 # Fitapp
