@@ -1,26 +1,36 @@
 #v1
 
-
 import streamlit as st
-import pandas as pd
-from fitapp_core.plan_v1 import generate_plan_v1
+from fitapp_core.exporters.json_csv import to_json_bytes, to_csv_str
+from fitapp_core.exporters.pdf import build_pdf
 
-st.title("Plan")
+st.title("Export")
 
-if "inputs_v1" not in st.session_state:
-    st.info("No inputs yet. Go to Onboarding to enter details.")
+if "plan_v1" not in st.session_state:
+    st.info("No plan yet. Generate a plan first.")
     st.stop()
 
-@st.cache_data(show_spinner=True)
-def cached_generate_plan(inputs_dict, tweak_note):
-    plan = generate_plan_v1(**inputs_dict, tweak_note=tweak_note)
-    return plan.model_dump()
+plan = st.session_state["plan_v1"]
+rows = plan["rows"]
+basename = f"fitapp_plan_{plan['goal']}_{plan['pal_value']}_{plan['plan_id']}"
 
-tweak = st.text_input("Suggest a tweak (optional)", placeholder="e.g., swap squats for leg press")
-plan_dict = cached_generate_plan({"inputs": st.session_state["inputs_v1"]}, tweak)
-st.session_state["plan_v1"] = plan_dict
+st.download_button(
+    "Download JSON",
+    data=to_json_bytes(plan),
+    file_name=f"{basename}.json",
+    mime="application/json",
+)
 
-df = pd.DataFrame(plan_dict["rows"])
-st.subheader("Routine")
-st.dataframe(df, width='stretch')
-st.caption(f"Goal: {plan_dict['goal']} • PAL={plan_dict['pal_value']} • BMR={plan_dict['bmr']} • TDEE≈{plan_dict['tdee']}")
+st.download_button(
+    "Download CSV",
+    data=to_csv_str(rows),
+    file_name=f"{basename}.csv",
+    mime="text/csv",
+)
+
+st.download_button(
+    "Download PDF",
+    data=build_pdf(plan),
+    file_name=f"{basename}.pdf",
+    mime="application/pdf",
+)

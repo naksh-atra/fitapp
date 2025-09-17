@@ -20,5 +20,5 @@ st.session_state["plan_v1"] = plan_dict
 
 df = pd.DataFrame(plan_dict["rows"])
 st.subheader("Routine")
-st.dataframe(df, width='stretch')
+st.dataframe(df, width = 'stretch')
 st.caption(f"Goal: {plan_dict['goal']} • PAL={plan_dict['pal_value']} • BMR={plan_dict['bmr']} • TDEE≈{plan_dict['tdee']}")
