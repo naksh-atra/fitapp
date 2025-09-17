@@ -9,7 +9,16 @@ description = "Core logic for Fitapp workout plan generator"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "streamlit>=1.26"
+    "streamlit>=1.26",
+    "pydantic>=2.6",
+    "fpdf2>=2.7",
+    "langchain>=0.2; extra == 'rag'",
+    "faiss-cpu>=1.7; extra == 'rag'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.0",
 ]
 
 [tool.setuptools]

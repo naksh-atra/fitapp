@@ -28,5 +28,5 @@ if st.button("Quick demo plan"):
         "goal": "Hypertrophy",
     }
     plan = generate_plan(profile)
-    st.subheader("Demo 7‑day plan (JSON)")
+    st.subheader("Demo 7-day plan (JSON)")
     st.json(plan)
