@@ -29,6 +29,7 @@ Fitapp is an interactive Streamlit app for planning and exporting workout routin
 - fpdf2 for generating a print-friendly PDF export
 
 ## Project structure
+```
 .
 ├── apps/web/app.py      # Streamlit entry point
 ├── apps/web/pages/ 1_Onboarding, 2_Plan, 3_Export, 4_Weekly_Review
@@ -36,7 +37,7 @@ Fitapp is an interactive Streamlit app for planning and exporting workout routin
 ├── Dockerfile           # Container entry for Spaces
 ├── pyproject.toml       # Dependencies & metadata (PEP 621)
 └── README.md
-
+```
 ## Local development
 Create and activate a virtual environment:
 python -m venv .venv && source .venv/bin/activate   # on Linux/Mac
