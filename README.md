@@ -32,7 +32,7 @@ Fitapp is an interactive Streamlit app for planning and exporting workout routin
 ```
 .
 ├── apps/web/app.py      # Streamlit entry point
-├── apps/web/pages/ 1_Onboarding, 2_Plan, 3_Export, 4_Weekly_Review
+├── apps/web/pages/      # 1_Onboarding, 2_Plan, 3_Export, 4_Weekly_Review
 ├── src/fitapp_core/     # Core logic (src layout)
 ├── Dockerfile           # Container entry for Spaces
 ├── pyproject.toml       # Dependencies & metadata (PEP 621)
