@@ -14,21 +14,24 @@ short_description: Workout planner
 
 # Fitapp
 
-Interactive Streamlit app for planning and exploring workout routines, deployed on Hugging Face Spaces via the Docker SDK.
+Fitapp is an interactive Streamlit app for planning and exporting workout routines, deployed on Hugging Face Spaces via the Docker SDK with reproducible builds.
 
 ## Features
-- Streamlit-based UI for quick iteration and sharing
-- Dockerized runtime for reproducible deploys on Spaces
-- Pyproject-first packaging with src/ layout
+- Streamlit multipage UI (Onboarding → Plan → Export) with form-based inputs and cached plan generation
+- Dockerized runtime for consistent local runs and Space deploys (sdk: docker, app_port: 8501)
+- Pyproject-first packaging with src/ layout; dev extras keep runtime lean
 
 ## Tech stack
 - Python 3.10
 - Streamlit
 - Hugging Face Spaces (SDK: Docker, app_port 8501)
+- Pydantic for typed schemas
+- fpdf2 for generating a print-friendly PDF export
 
 ## Project structure
 .
 ├── apps/web/app.py      # Streamlit entry point
+├── apps/web/pages/ 1_Onboarding, 2_Plan, 3_Export, 4_Weekly_Review
 ├── src/fitapp_core/     # Core logic (src layout)
 ├── Dockerfile           # Container entry for Spaces
 ├── pyproject.toml       # Dependencies & metadata (PEP 621)
@@ -43,7 +46,17 @@ Install in editable mode:
 pip install -e .
 
 Run Streamlit locally:
-streamlit run apps/web/app.py
+streamlit run apps/web/app.
+
+## Tests and CI:
+Run tests locally:
+pytest -q tests/unit (fast unit tests)
+pytest -q (full suite)
+
+CI setup:
+Use actions/setup-python with pip cache
+Install with pip install -e ".[dev]"
+Run pytest on push or pull requests
 
 ## Deployment (Hugging Face Spaces)
 - This Space uses the Docker SDK. The YAML block at the top of README selects `sdk: docker` and `app_port: 8501`.
@@ -64,8 +77,15 @@ streamlit run apps/web/app.py
 - Optionally, add a GitHub Actions workflow to smoke-test installation and imports.
 
 ## License
-Open source — MIT (or your chosen license).
+- This project is currently not licensed for reuse
+- You can add a LICENSE file later if you want others to use or contribute
 
+## Contributing
+- Fork the repo and create a feature branch
+- Install dev extras for tests:
+    pip install -e ".[dev]"
+- Run pytest locally before opening a PR
+- Streamlit CLI options (such as port or address) can help if local ports are busy
 ---
 
 ### Notes
