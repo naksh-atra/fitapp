@@ -94,3 +94,4 @@ Run pytest on push or pull requests
 - For Docker SDK apps, `app_port` tells Spaces which internal container port to expose.
 - The actual app startup is defined by the Dockerfile CMD.
 - Do not add `app_file` for Docker SDK — the Dockerfile governs the process.
+
