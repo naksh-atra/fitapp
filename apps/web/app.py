@@ -30,3 +30,7 @@ if st.button("Quick demo plan"):
     plan = generate_plan(profile)
     st.subheader("Demo 7-day plan (JSON)")
     st.json(plan)
+
+
+
+#streamlit run apps/web/app.py --server.address localhost --server.port 8501

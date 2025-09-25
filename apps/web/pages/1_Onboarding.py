@@ -55,13 +55,13 @@ with st.form("user_inputs"):
     weight_kg = col2.number_input("Weight (kg)", min_value=35.0, max_value=200.0, value=70.0, step=0.5)
     pal_code = col1.selectbox("Physical Activity Level", ["sedentary", "active", "vigorous"])
     goal = col2.selectbox("Goal", ["hypertrophy", "strength", "fat_loss", "endurance"])
-    notes = st.text_area("Notes (optional)", placeholder="Injuries, equipment limits, preferences")
+    # notes = st.text_area("Notes (optional)", placeholder="Injuries, equipment limits, preferences")
     submitted = st.form_submit_button("Compute & Save")
 
 if submitted:
     inputs = Inputs(
         age=int(age), sex=sex, height_cm=int(height_cm), weight_kg=float(weight_kg),
-        pal_code=pal_code, goal=goal, notes=notes or None
+        pal_code=pal_code, goal=goal or None
     )
     pal_value = PAL_MAP[pal_code]
     bmr = bmr_mifflin_st_jeor(inputs.sex, inputs.weight_kg, inputs.height_cm, inputs.age)
