@@ -1,6 +1,8 @@
 import pytest
 from pydantic import ValidationError
-from fitapp_core.models import Inputs
+# from fitapp_core.models import Inputs
+from fitapp_core.models_v11 import InputsV11
+
 
 def test_inputs_valid():
     Inputs(age=25, sex="male", height_cm=175, weight_kg=70.0, pal_code="active", goal="hypertrophy")

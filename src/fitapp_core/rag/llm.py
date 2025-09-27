@@ -121,7 +121,7 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=".env.local")
 
 BASE_URL = "https://api.perplexity.ai"
-MODEL = os.getenv("PERPLEXITY_MODEL", "sonar-pro")  # or "sonar"
+MODEL = os.getenv("PERPLEXITY_MODEL", "sonar-pro")
 API_KEY = os.getenv("PERPLEXITY_API_KEY")
 
 _client = OpenAI(api_key=API_KEY, base_url=BASE_URL)

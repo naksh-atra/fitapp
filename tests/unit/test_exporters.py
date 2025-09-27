@@ -1,4 +1,4 @@
-from fitapp_core.exporters.json_csv import to_json_bytes, to_csv_str
+from fitapp_core.exporters.json_csv import to_json_bytes, to_csv_str, to_csv_str_v11
 from fitapp_core.exporters.pdf import build_pdf_v11
 
 def sample_plan():
