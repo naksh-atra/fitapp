@@ -1,6 +1,6 @@
 # tests/conftest.py
 import pytest
-
+import os
 
 # # --- Early env guard for modules that init clients at import time ---
 # @pytest.fixture(scope="session", autouse=True)
