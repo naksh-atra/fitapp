@@ -2,12 +2,14 @@
 import pytest
 
 
-# --- Early env guard for modules that init clients at import time ---
-@pytest.fixture(scope="session", autouse=True)
-def _set_dummy_api_key_for_imports():
-    # Ensure present during collection/import of modules like rag.llm
-    os.environ.setdefault("OPENAI_API_KEY", "test")
+# # --- Early env guard for modules that init clients at import time ---
+# @pytest.fixture(scope="session", autouse=True)
+# def _set_dummy_api_key_for_imports():
+#     # Ensure present during collection/import of modules like rag.llm
+#     os.environ.setdefault("OPENAI_API_KEY", "test")
 
+# Ensure present during collection/import of modules that init clients at import time
+os.environ.setdefault("OPENAI_API_KEY", "test")
 
 # ----- Shared v1.1 fixtures -----
 

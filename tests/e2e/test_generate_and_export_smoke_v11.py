@@ -1,4 +1,7 @@
 # tests/e2e/test_generate_and_export_smoke_v11.py
+import os
+os.environ.setdefault("OPENAI_API_KEY", "test")  # must be set before importing plan_v11
+
 import pytest
 from fitapp_core.models_v11 import InputsV11
 from fitapp_core.plan_v11 import generate_plan_v11
