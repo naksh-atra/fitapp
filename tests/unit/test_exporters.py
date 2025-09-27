@@ -1,5 +1,5 @@
 from fitapp_core.exporters.json_csv import to_json_bytes, to_csv_str
-from fitapp_core.exporters.pdf import build_pdf
+from fitapp_core.exporters.pdf import build_pdf_v11
 
 def sample_plan():
     return {
@@ -29,6 +29,6 @@ def test_csv_export_header_and_row():
     assert "Squat" in lines[1]
 
 def test_pdf_export_bytes_nonempty():
-    pdf_bytes = build_pdf(sample_plan())
+    pdf_bytes = build_pdf_v11(sample_plan())
     assert isinstance(pdf_bytes, (bytes, bytearray)) and len(pdf_bytes) > 100
     assert pdf_bytes.startswith(b"%PDF")
