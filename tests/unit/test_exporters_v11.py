@@ -3,16 +3,16 @@ from fitapp_core.exporters.pdf import build_pdf_v11
 
 def sample_plan():
     return {
-        "schema_version": "1",
+        "schema_version": "1.1",
         "plan_id": "abc123",
         "generated_at": "2025-09-17T00:00:00Z",
         "goal": "hypertrophy",
-        "pal_value": 1.85,
-        "bmr": 1700,
-        "tdee": 3145,
+        # "pal_value": 1.85,
+        # "bmr": 1700,
+        # "tdee": 3145,
+        "week_count": 4,
         "rows": [
-            {"day": 1, "movement": "Squat", "sets": 3, "reps": 8,
-             "tempo_or_rest": "2-0-2", "load_prescription": "RPE 7", "notes": ""},
+            {"week_label":"Week 1","day":1,"day_name":"Mon","block_type":"main","movement":"Squat","sets":3,"reps":8}
         ],
     }
 
