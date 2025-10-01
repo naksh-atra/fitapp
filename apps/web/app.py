@@ -4,6 +4,22 @@ from datetime import datetime
 
 st.set_page_config(page_title="Fitapp — Workout Plan Generator", page_icon="💪", layout="centered")
 
+import os
+from pathlib import Path
+
+def _data_status_line() -> str:
+    data_dir = Path("./data").resolve()
+    idx_dir = data_dir / "index" / "v1"
+    proc_dir = data_dir / "processed"
+    idx_ok = (idx_dir / "faiss.index").exists() and (idx_dir / "meta.parquet").exists()
+    proc_ok = (proc_dir / "chunks.jsonl").exists() or (proc_dir / "docs.jsonl").exists()
+    return f"Data: {data_dir} | Index OK: {idx_ok} | Processed OK: {proc_ok}"
+
+# Log once on page load
+status = _data_status_line()
+print("[Fitapp] Startup:", status)
+st.caption(status)
+
 st.title("Fitapp — Workout Plan Generator")
 st.write("Use the pages in the sidebar to onboard and review weekly changes.")
 
