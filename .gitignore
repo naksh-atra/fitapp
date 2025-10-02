@@ -31,4 +31,5 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Directory structure
 project_structure.txt
