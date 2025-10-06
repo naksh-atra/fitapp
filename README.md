@@ -87,7 +87,6 @@ Run pytest on push or pull requests
     pip install -e ".[dev]"
 - Run pytest locally before opening a PR
 - Streamlit CLI options (such as port or address) can help if local ports are busy
-- Added another branch on 06/10/25 called 'dev' to keep a track of daily iterations
 ---
 
 ### Notes
@@ -95,4 +94,5 @@ Run pytest on push or pull requests
 - For Docker SDK apps, `app_port` tells Spaces which internal container port to expose.
 - The actual app startup is defined by the Dockerfile CMD.
 - Do not add `app_file` for Docker SDK; the Dockerfile governs the process.
-
+- Added another branch on 06/10/25 called 'dev' to keep a track of daily iterations
+- Added another repo called 'fitapp_data' to keep a record of knowledge base corpus
