@@ -5,8 +5,6 @@ import os
 import re
 import json
 import time
-import pathlib
-import datetime
 from typing import Any, Dict, Optional
 
 from openai import OpenAI
@@ -24,14 +22,8 @@ API_KEY = os.getenv("PERPLEXITY_API_KEY")
 _client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
 
 # -------------------------
-# Local JSONL logging
+# JSON-safe helper + console logging
 # -------------------------
-LOG_DIR = pathlib.Path("./data/logs")
-LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-def _log_file_path() -> pathlib.Path:
-    return LOG_DIR / f"llm_{datetime.date.today().isoformat()}.jsonl"
-
 def _json_safe(v: Any) -> Any:
     if v is None or isinstance(v, (str, int, float, bool)):
         return v
@@ -40,7 +32,6 @@ def _json_safe(v: Any) -> Any:
     if isinstance(v, dict):
         return {str(k): _json_safe(val) for k, val in v.items()}
     try:
-        # numpy scalars/arrays and pandas NA
         import numpy as np  # type: ignore
         if isinstance(v, np.ndarray):
             return v.tolist()
@@ -56,14 +47,13 @@ def _json_safe(v: Any) -> Any:
             return None
     except Exception:
         pass
-    # Fallback
     return str(v)
 
 def _log_event(event: Dict[str, Any]) -> None:
+    # Print a single JSON line to stdout for easy terminal inspection; no file writes
     try:
         safe = {str(k): _json_safe(v) for k, v in event.items()}
-        with _log_file_path().open("a", encoding="utf-8") as f:
-            f.write(json.dumps(safe, ensure_ascii=False) + "\n")
+        print("[LLM-LOG]", json.dumps(safe, ensure_ascii=False))
     except Exception as e:
         print(f"[LLM-LOG] failed: {e}")
 
@@ -152,7 +142,7 @@ def _extract_choice_text(resp: Any) -> str:
     return ""
 
 # -------------------------
-# Public API (with logging)
+# Public API (console-logged)
 # -------------------------
 def call_llm_json_object_with_log(
     prompt: str,
@@ -161,7 +151,7 @@ def call_llm_json_object_with_log(
 ) -> Dict[str, Any]:
     """
     Ask the model for a single JSON object; tolerate stray prose and minor JSON defects.
-    Also logs a structured JSONL line with metadata and the first ~2KB of the raw completion.
+    Also logs a structured line to stdout with metadata and the first ~2KB of the raw completion.
     """
     sys_msg = "Return ONLY a JSON object. No prose."
     t0 = time.time()
@@ -180,7 +170,6 @@ def call_llm_json_object_with_log(
         )
         raw1 = _extract_choice_text(resp)
         obj = _parse_object_text(raw1)
-        # usage (best effort)
         try:
             u = getattr(resp, "usage", {}) or {}
             usage = dict(u) if isinstance(u, dict) else {}
@@ -190,7 +179,7 @@ def call_llm_json_object_with_log(
         if obj:
             _log_event(
                 {
-                    "ts": datetime.datetime.utcnow().isoformat() + "Z",
+                    "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                     "event": "llm_json_ok",
                     "model": MODEL,
                     "elapsed_ms": int((time.time() - t0) * 1000),
@@ -226,7 +215,7 @@ def call_llm_json_object_with_log(
 
         _log_event(
             {
-                "ts": datetime.datetime.utcnow().isoformat() + "Z",
+                "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "event": "llm_json_retry" if obj2 else "llm_json_fail",
                 "model": MODEL,
                 "elapsed_ms": int((time.time() - t0) * 1000),
@@ -241,7 +230,7 @@ def call_llm_json_object_with_log(
     except Exception as e:
         _log_event(
             {
-                "ts": datetime.datetime.utcnow().isoformat() + "Z",
+                "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "event": "llm_json_error",
                 "model": MODEL,
                 "elapsed_ms": int((time.time() - t0) * 1000),
@@ -256,10 +245,7 @@ def call_llm_json_object_with_log(
         return {}
 
 def call_llm_json_object(prompt: str, schema: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Backward-compatible wrapper that logs with an empty context.
-    Prefer call_llm_json_object_with_log to pass goal/days/retrieval info.
-    """
+    # Backward-compatible wrapper that logs with an empty context
     return call_llm_json_object_with_log(prompt, schema, context={})
 
 # Back-compat alias used by older code/tests

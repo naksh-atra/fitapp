@@ -147,7 +147,6 @@ def _flatten_week(week_label: str, days: List[Dict[str, Any]]) -> List[Dict[str,
     return out
 
 def _rotate_days(days: List[Dict[str, Any]], shift: int) -> List[Dict[str, Any]]:
-    # Rotate the day sequence to change when muscles are hit across weeks
     if not days:
         return days
     shift = shift % len(days)
@@ -173,16 +172,49 @@ def _variant_rows(rows: List[Dict[str, Any]], week_note: str, week_idx: int) -> 
     for r in rows:
         nr = dict(r)
         nr["week_label"] = f"Week {week_idx}"
-        # Accessory variation: swap to an alternative variant for weeks > 1
         if nr.get("block_type") == "accessory" and week_idx > 1:
             mv = nr.get("movement")
             if mv in _ALT_ACCESSORY:
                 nr["movement"] = _ALT_ACCESSORY[mv]
-        # Append simple note to guide weekly progression
         existing = (nr.get("notes") or "").strip()
         nr["notes"] = (f"{existing} | {week_note}".strip(" |")) if week_note else existing
         out.append(nr)
     return out
+
+def _apply_tweak_rules(days: List[Dict[str, Any]], tweak_note: Optional[str]) -> List[Dict[str, Any]]:
+    if not tweak_note or not isinstance(tweak_note, str):
+        return days
+    note = tweak_note.strip().lower()
+
+    def _swap(item: Dict[str, Any], new_mv: str, sets: Optional[int]=None, reps: Optional[int]=None, cue: Optional[str]=None, rest: Optional[str]=None, notes: Optional[str]=None):
+        item["movement"] = new_mv
+        if sets is not None: item["sets"] = sets
+        if reps is not None: item["reps"] = reps
+        if cue is not None: item["intensity_cue"] = cue
+        if rest is not None: item["tempo_or_rest"] = rest
+        if notes: item["notes"] = (item.get("notes") or "").strip() + ((" | " + notes) if notes else "")
+
+    new_days: List[Dict[str, Any]] = []
+    for d in days:
+        d2 = {k: (v[:] if isinstance(v, list) else v) for k, v in d.items()}
+        # Shoulder pain / bench alternatives
+        if ("bench" in note and "shoulder" in note) or ("bench press" in note and "hurt" in note):
+            for section in ("main", "accessory"):
+                items = d2.get(section) or []
+                for it in items:
+                    if isinstance(it, dict) and isinstance(it.get("movement"), str) and "bench press" in it["movement"].lower():
+                        _swap(it, "Dumbbell Floor Press", sets=3, reps=8, cue="RPE 6–8", rest="60–90s", notes="shoulder-friendly alternative")
+        # Bodyweight instead of barbell squats
+        if ("bodyweight" in note or "body weight" in note) and "squat" in note:
+            for section in ("main", "accessory"):
+                items = d2.get(section) or []
+                for it in items:
+                    if isinstance(it, dict) and isinstance(it.get("movement"), str):
+                        mv = it["movement"].lower()
+                        if "back squat" in mv or mv == "squat":
+                            _swap(it, "Bulgarian Split Squat", sets=3, reps=10, cue="RPE 7–9", rest="60–90s", notes="progress load/ROM weekly")
+        new_days.append(d2)
+    return new_days
 
 def assess_tweak(goal: str, tweak_text: str) -> Dict[str, Any]:
     if not tweak_text or not tweak_text.strip():
@@ -250,6 +282,8 @@ def generate_plan_v11(inputs: InputsV11, tweak_note: Optional[str] = None) -> Pl
 
     compact = call_llm_json_object_with_log(prompt, schema, context) or {}
     canon_days = ((compact.get("canonical_week") or {}).get("days")) or _default_canonical_week(inputs)
+    # Apply deterministic tweak rules so changes reflect even if model JSON fails (fallback path)
+    canon_days = _apply_tweak_rules(canon_days, tweak_note)
     week1_rows = _flatten_week("Week 1", canon_days)
 
     # Expand to Weeks 2–4 with day rotation and accessory variants
