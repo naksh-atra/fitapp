@@ -1,39 +1,3 @@
-# from fitapp_core.exporters.json_csv import to_json_bytes, to_csv_str, to_csv_str_v11
-# from fitapp_core.exporters.pdf import build_pdf_v11
-
-# def sample_plan():
-#     return {
-#         "schema_version": "1.1",
-#         "plan_id": "abc123",
-#         "generated_at": "2025-09-17T00:00:00Z",
-#         "goal": "hypertrophy",
-#         # "pal_value": 1.85,
-#         # "bmr": 1700,
-#         # "tdee": 3145,
-#         "week_count": 4,
-#         "rows": [
-#             {"week_label":"Week 1","day":1,"day_name":"Mon","block_type":"main","movement":"Squat","sets":3,"reps":8}
-#         ],
-#     }
-
-# def test_json_export_includes_schema_and_id():
-#     data = to_json_bytes(sample_plan())
-#     s = data.decode("utf-8")
-#     assert '"schema_version": "1"' in s and '"plan_id": "abc123"' in s
-
-# def test_csv_export_header_and_row():
-#     rows = sample_plan()["rows"]
-#     csv_str = to_csv_str(rows)
-#     lines = [ln for ln in csv_str.splitlines() if ln]
-#     assert lines[0] == "day,movement,sets,reps,tempo_or_rest,load_prescription,notes"
-#     assert "Squat" in lines[1]
-
-# def test_pdf_export_bytes_nonempty():
-#     pdf_bytes = build_pdf_v11(sample_plan())
-#     assert isinstance(pdf_bytes, (bytes, bytearray)) and len(pdf_bytes) > 100
-#     assert pdf_bytes.startswith(b"%PDF")
-
-
 import json
 import pytest
 
