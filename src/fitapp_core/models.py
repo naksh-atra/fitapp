@@ -1,6 +1,3 @@
-#v1
-
-
 from pydantic import BaseModel, Field, conint, confloat
 from typing import Literal, Optional, List
 from uuid import uuid4
@@ -10,7 +7,7 @@ SchemaVersion = Literal["1"]
 
 # Map UI PAL codes to numeric multipliers (tune values as needed per FAO/WHO/UNU bands)
 PAL_MAP: dict[str, float] = {
-    "sedentary": 1.55,   # midpoint representative
+    "sedentary": 1.55,  # midpoint representative
     "active": 1.85,
     "vigorous": 2.20,
 }
@@ -23,6 +20,9 @@ class Inputs(BaseModel):
     pal_code: Literal["sedentary", "active", "vigorous"]
     goal: Literal["hypertrophy", "strength", "fat_loss", "endurance"]
     notes: Optional[str] = None
+    # New: optional enrichers used by v1.1 mapping
+    days_per_week: Optional[int] = None
+    equipment: Optional[List[str]] = None
 
 class PlanRow(BaseModel):
     day: conint(ge=1)
@@ -41,4 +41,4 @@ class Plan(BaseModel):
     pal_value: float
     bmr: int
     tdee: int
-    rows: List[PlanRow] = []
+    rows: List[PlanRow]

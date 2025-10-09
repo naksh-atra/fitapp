@@ -1,32 +1,30 @@
-# =========================
-# Page: Plan (v1.1 engine)
-# =========================
-# Renders the plan using the new goal-agnostic v1.1 layout.
-# v1 remains in the codebase for rollback (separate page or flag).
+# apps/web/pages/2_Plan.py
+from __future__ import annotations
 
 import streamlit as st
 import pandas as pd
-from fitapp_core.plan_v11 import generate_plan_v11
+
+from fitapp_core.plan_v11 import generate_plan_v11, assess_tweak
 from fitapp_core.models_v11 import InputsV11
 
-# ---------- Page title ----------
+DAY_ORDER = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+
 st.title("Plan")
 
-# ---------- Guard: prerequisites ----------
+# Guard
 if "inputs_v1" not in st.session_state:
     st.info("No inputs yet. Go to Onboarding to enter details.")
     st.stop()
 
-# ---------- Cache: v1.1 plan generation ----------
 @st.cache_data(show_spinner=True)
 def cached_generate_plan_v11(inputs_dict: dict, tweak_note: str | None):
-    """Cache the v1.1 generation on a plain dict for deterministic reruns."""
     inputs = InputsV11(**inputs_dict)
     plan = generate_plan_v11(inputs, tweak_note=tweak_note)
     return plan.model_dump()
 
-# ---------- Inputs conversion: v1 -> v1.1 ----------
+# v1 -> v1.1
 v1 = st.session_state["inputs_v1"].model_dump()
+days_per_week = v1.get("days_per_week") or 5
 inputs_v11 = {
     "age": v1["age"],
     "sex": v1["sex"],
@@ -36,53 +34,101 @@ inputs_v11 = {
     "goal": v1["goal"],
     "equipment": v1.get("equipment"),
     "notes": v1.get("notes"),
+    "experience": v1.get("experience"),
+    "days_per_week": int(days_per_week),
 }
 
-# ---------- Tweak box (unique key to avoid duplicate IDs) ----------
-existing_plan_id = st.session_state.get("plan_v11", {}).get("plan_id", "current")
+# Unified tweak UI
 tweak = st.text_input(
     "Suggest a tweak (optional)",
     placeholder="e.g., swap squats for leg press",
-    key=f"tweak_v11_{existing_plan_id}",
+    key="tweak_v11_text",
 )
 
-# ---------- Generate plan & persist ----------
-plan_dict = cached_generate_plan_v11(inputs_v11, tweak)
-st.session_state["plan_v11"] = plan_dict
-plan_id = plan_dict["plan_id"]
+def _assess_and_maybe_apply():
+    verdict = assess_tweak(inputs_v11.get("goal",""), tweak or "")
+    st.session_state["tweak_flash"] = verdict  # transient display
+    v = verdict.get("verdict")
+    if v == "block":
+        return
+    if v == "warn" and not st.session_state.get("confirm_apply_warn"):
+        st.session_state["confirm_apply_warn"] = True
+        return
+    # ok or confirmed warn -> force fresh generation
+    try:
+        cached_generate_plan_v11.clear()
+    except Exception:
+        st.cache_data.clear()
+    plan = cached_generate_plan_v11(inputs_v11, tweak or "")
+    st.session_state["plan_v11"] = plan
+    st.session_state["confirm_apply_warn"] = False
 
-# ---------- Grouped day/sections view with inline edits ----------
-df = pd.DataFrame(plan_dict["rows"])
+colA, colB = st.columns([1,1])
+with colA:
+    if st.button("Assess & apply tweak"):
+        _assess_and_maybe_apply()
+with colB:
+    if st.session_state.get("confirm_apply_warn") and st.button("Confirm and apply"):
+        _assess_and_maybe_apply()
 
-for (week, day, day_name), g in df.groupby(["week_label", "day", "day_name"], sort=True):
-    st.subheader(f"{week} - {day_name}")  # ASCII dash avoids PDF font issues later
+flash = st.session_state.pop("tweak_flash", None)
+if flash:
+    v = flash.get("verdict")
+    msg = flash.get("rationale","")
+    (st.success if v=="ok" else st.warning if v=="warn" else st.error)(msg)
 
-    # Render sections in a consistent order
-    for block in ["main", "accessory", "prehab", "cardio_notes"]:
-        sub = g[g["block_type"] == block]
-        if sub.empty:
+# Generate plan if missing
+if "plan_v11" not in st.session_state:
+    st.session_state["plan_v11"] = cached_generate_plan_v11(inputs_v11, None)
+plan_dict = st.session_state["plan_v11"]
+
+# Data
+rows = plan_dict.get("rows") or []
+if not rows:
+    st.error("Plan could not be parsed this time; try again or adjust the tweak.")
+    st.stop()
+df = pd.DataFrame(rows)
+
+# Views
+view = st.radio("View", ["Blueprint (Week 1)", "Month (4 weeks)"], horizontal=True)
+visible_days = DAY_ORDER[: int(days_per_week)] if 2 <= int(days_per_week) <= 6 else DAY_ORDER
+
+def _cell_lines(day_rows: pd.DataFrame) -> list[str]:
+    lines: list[str] = []
+    for section in ["main","accessory","prehab","cardio_notes"]:
+        sub = day_rows[day_rows["block_type"] == section]
+        for _, r in sub.iterrows():
+            sets, reps = r.get("sets"), r.get("reps")
+            dur = r.get("duration")
+            vol = f"{int(sets)}×{int(reps)}" if pd.notna(sets) and pd.notna(reps) else (dur or "")
+            base = f"{r.get('movement','')} — {vol}".strip(" —")
+            note = (r.get("notes") or "").strip()
+            lines.append(base if not note else f"{base} · {note}")
+    return lines or ["(no items)"]
+
+if view.startswith("Blueprint"):
+    d1 = df[df["week_label"] == "Week 1"]
+    for dn in visible_days:
+        g = d1[d1["day_name"] == dn]
+        if g.empty:
             continue
+        st.subheader(f"Week 1 — {dn}")
+        for line in _cell_lines(g):
+            st.write(f"- {line}")
+else:
+    weeks = sorted(df["week_label"].dropna().unique().tolist(), key=lambda w: int(str(w).split()[-1]) if str(w).startswith("Week") else 1)
+    weeks = weeks or ["Week 1","Week 2","Week 3","Week 4"]
+    cols = st.columns(len(weeks))
+    for i, wk in enumerate(weeks):
+        with cols[i]:
+            st.markdown(f"#### {wk}")
+            for dn in visible_days:
+                g = df[(df["week_label"] == wk) & (df["day_name"] == dn)]
+                if g.empty:
+                    continue
+                st.caption(dn)
+                for line in _cell_lines(g):
+                    st.write(f"- {line}")
 
-        st.caption(block.replace("_", " ").title())
-
-        editable_cols = ["sets", "reps", "duration", "tempo_or_rest", "notes"]
-        disabled_cols = [c for c in sub.columns if c not in editable_cols]
-
-        editor_key = f"editor_{plan_id}_{week}_{day}_{block}"
-        edited = st.data_editor(
-            sub[disabled_cols + editable_cols],
-            hide_index=True,
-            width="stretch",          # replaces deprecated use_container_width
-            disabled=disabled_cols,
-            key=editor_key,           # unique per day+section
-        )
-
-        # Persist edits back into the aggregated dataframe
-        df.loc[edited.index, editable_cols] = edited[editable_cols]
-
-# ---------- Save edited rows to session for Export page ----------
-plan_dict["rows"] = df.to_dict(orient="records")
-st.session_state["plan_v11"] = plan_dict
-
-# ---------- Summary line ----------
-st.caption(f"Goal: {plan_dict['goal']} - Weeks: {plan_dict.get('week_count', 4)}")
+st.caption(f"Goal: {plan_dict.get('goal','?')} — Weeks: {plan_dict.get('week_count', 4)}")
+# Sources remain server-side only (logged in plan generation).
