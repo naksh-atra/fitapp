@@ -68,43 +68,76 @@ def _strip_code_fences(text: str) -> str:
     t = re.sub(r"\n?\s*```\s*$", "", t)
     return t.strip()
 
-def _balanced_json_slice(text: str) -> Optional[str]:
-    start = text.find("{")
+def _balanced_slice(text: str, open_ch: str, close_ch: str) -> Optional[str]:
+    start = text.find(open_ch)
     if start == -1:
         return None
     depth = 0
-    for i, ch in enumerate(text[start:], start):
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start : i + 1]
+    in_str = False
+    esc = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+        else:
+            if ch == '"':
+                in_str = True
+            elif ch == open_ch:
+                depth += 1
+            elif ch == close_ch:
+                depth -= 1
+                if depth == 0:
+                    return text[start : i + 1]
     return None
 
 def _repair_json(s: str) -> str:
+    # Normalize curly quotes and common punctuation issues
     s = s.replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'")
     # Replace single quotes with double quotes when not escaped
-    s = re.sub(r"(?<!\\)'", '"', s)
+    s = re.sub(r'(?<!\\)\'', '"', s)
     # Remove trailing commas before } or ]
     s = re.sub(r",\s*([}\]])", r"\1", s)
     return s.strip()
 
 def _parse_object_text(text: str) -> Dict[str, Any]:
+    """
+    Attempt to parse a JSON object from arbitrary model output.
+    Tries as-is, repaired, and balanced-slice extractions for both { } and [ ].
+    If a top-level array is found, coerce to an object under {'items': [...]}.
+    """
     t = _strip_code_fences(text)
-    cand = _balanced_json_slice(t) or t
-    attempts = [
-        cand,
-        _repair_json(cand),
-        _balanced_json_slice(_repair_json(cand)) or "",
-    ]
-    for payload in attempts:
-        if not payload:
+    # Try object first
+    for attempt in (
+        t,
+        _repair_json(t),
+        _balanced_slice(t, "{", "}") or "",
+        _balanced_slice(_repair_json(t), "{", "}") or "",
+    ):
+        if not attempt:
             continue
         try:
-            obj = json.loads(payload)
+            obj = json.loads(attempt)
             if isinstance(obj, dict):
                 return obj
+        except Exception:
+            pass
+    # Try array and wrap
+    for attempt in (
+        _balanced_slice(t, "[", "]") or "",
+        _balanced_slice(_repair_json(t), "[", "]") or "",
+    ):
+        if not attempt:
+            continue
+        try:
+            arr = json.loads(attempt)
+            if isinstance(arr, list):
+                # Coerce to a generic object if caller expects an object
+                return {"items": arr}
         except Exception:
             pass
     print("[LLM] Object parse failed after repair; returning empty fallback")

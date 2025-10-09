@@ -1,8 +1,9 @@
 # src/fitapp_core/plan_v11.py
 from __future__ import annotations
 
-from typing import Optional, List, Dict, Any
+import os
 import re
+from typing import Optional, List, Dict, Any
 
 from pydantic import ValidationError
 
@@ -19,6 +20,9 @@ from .rag.prompts import (
     render_numbered_snippets,
 )
 from .rag.llm import call_llm_json_object_with_log
+
+# Feature flag: do not rely on LLM JSON for plan rows by default (safe dual path)
+USE_LLM_JSON = os.getenv("PLAN_V11_USE_LLM_JSON", "false").strip().lower() in ("1", "true", "yes")
 
 DAY_NAMES = {1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun"}
 DAY_NAME_MAP = {
@@ -260,7 +264,7 @@ def generate_plan_v11(inputs: InputsV11, tweak_note: Optional[str] = None) -> Pl
             print(f"[Sources] [{i}] doc {s.get('doc_id')} · chunk {s.get('id')}")
     snippets_text = render_snippets_for_v11([s.get("text", "") for s in snippet_hits]) if snippet_hits else "- none"
 
-    # Prompt for canonical week + progression (token-light), tolerate empty response
+    # Prompt for canonical week + progression (advisory only; plan rows are deterministic)
     user_prompt = USER_TEMPLATE_V11.format(
         sex=inputs.sex, age=inputs.age, height_cm=inputs.height_cm, weight_kg=inputs.weight_kg,
         pal_value=pal_value, goal=inputs.goal, equipment=inputs.equipment or [],
@@ -280,9 +284,13 @@ def generate_plan_v11(inputs: InputsV11, tweak_note: Optional[str] = None) -> Pl
         "prompt_chars": len(user_prompt),
     }
 
-    compact = call_llm_json_object_with_log(prompt, schema, context) or {}
+    compact = {}
+    if USE_LLM_JSON:
+        # Best-effort parse; never required for plan rows
+        compact = call_llm_json_object_with_log(prompt, schema, context) or {}
+
+    # Always build deterministically; optionally seed from LLM if available
     canon_days = ((compact.get("canonical_week") or {}).get("days")) or _default_canonical_week(inputs)
-    # Apply deterministic tweak rules so changes reflect even if model JSON fails (fallback path)
     canon_days = _apply_tweak_rules(canon_days, tweak_note)
     week1_rows = _flatten_week("Week 1", canon_days)
 
@@ -307,7 +315,11 @@ def generate_plan_v11(inputs: InputsV11, tweak_note: Optional[str] = None) -> Pl
     rows.sort(key=lambda r: (r.week_label, r.day, priority.get(r.block_type, 9)))
 
     plan = PlanV11(goal=inputs.goal, rows=rows, week_count=4)
-    plan.extra = {"snippets_count": len(snippet_hits), "retrieval_query": retrieval_query}
+    plan.extra = {
+        "snippets_count": len(snippet_hits),
+        "retrieval_query": retrieval_query,
+        "used_llm_for_rows": bool(USE_LLM_JSON and (compact.get("canonical_week") or {}).get("days")),
+    }
     return plan
 
 # Helpers reused from earlier implementation
